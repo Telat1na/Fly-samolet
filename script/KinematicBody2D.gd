@@ -27,13 +27,14 @@ func _ready():
 	add_child(shootingTimer)
 	# Запуск таймера
 	shootingTimer.start()
-	print(healthPoint)
-	$Area2D.connect("body_entered",self,"_on_Area2D_body_entered")
+	prints("READY health:", healthPoint)
+	$Area2D.connect("area_entered", self, "_on_Area2D_area_entered")
 
 
 func _physics_process(delta):
-	direction.x = Input.get_action_strength("right") - Input.get_action_strength("left")
-	direction.y = Input.get_action_strength("down") - Input.get_action_strength("up")
+#	direction.x = Input.get_axis("left", "right")#Input.get_action_strength("right") - Input.get_action_strength("left")
+#	direction.y = Input.get_action_strength("down") - Input.get_action_strength("up")
+	direction = Input.get_vector("left", "right", "up", "down")
 	if direction:
 		velocity = direction.normalized() * delta * features["speed"]
 	else:
@@ -46,7 +47,6 @@ func _physics_process(delta):
 		else:
 			shootingTimer.stop()
 	move_and_slide(velocity)
-
 
 func _shoot():
 	var bullet = BULLET.instance()
@@ -76,8 +76,9 @@ func damage(amount):
 		print("dead")
 
 
-func _on_Area2D_body_entered(body):
-	print("_on_Area2D_body_entered")
+func _on_Area2D_area_entered(body):
+#	print("_on_Area2D_body_entered")
+#	prints("Collided:", body.name)
 	if body.is_in_group("BulletEnemy"): 
-		body.emit_signal("hit")
-		print("bulletEnteret")
+		damage(features["damage"])
+	

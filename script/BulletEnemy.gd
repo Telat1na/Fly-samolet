@@ -13,3 +13,8 @@ func _on_VisibilityNotifier2D_screen_exited():
 
 func _on_BulletEnemy_area_entered(area):
 		queue_free()
+
+
+func _on_BulletEnemy_body_exited(body):
+		if body.is_in_group("Player"):
+			body.damage(1)
