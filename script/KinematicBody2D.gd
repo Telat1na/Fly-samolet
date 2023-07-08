@@ -1,17 +1,17 @@
 extends KinematicBody2D
 
-signal hit
-signal touch 
+
 const BULLET = preload("res://scene/Bullet.tscn")
 const EnemyBullet = preload("res://scene/BulletEnemy.tscn")
 var velocity = Vector2.ZERO
 var direction = Vector2.ZERO
 var shootingTimer = Timer.new()
 var isShootingEnabled = true
+var turn_speed = 0.075
 onready var healthPoint = features["maxHealth"]
 var features := {
 	"maxHealth":10,
-	"speed": 10000,
+	"speed": 19000,
 	"shootingInterval": 1,
 	"level":1,
 	"ex":0,
@@ -20,38 +20,49 @@ var features := {
 
 
 func _ready():
-	# Настройка таймера
 	shootingTimer.wait_time = features["shootingInterval"]
 	shootingTimer.one_shot = false
 	shootingTimer.connect("timeout", self, "_on_Timer_timeout")
 	add_child(shootingTimer)
-	# Запуск таймера
 	shootingTimer.start()
 	prints("READY health:", healthPoint)
 	$Area2D.connect("area_entered", self, "_on_Area2D_area_entered")
+	Global.player = self
 
 
 func _physics_process(delta):
-#	direction.x = Input.get_axis("left", "right")#Input.get_action_strength("right") - Input.get_action_strength("left")
-#	direction.y = Input.get_action_strength("down") - Input.get_action_strength("up")
-	direction = Input.get_vector("left", "right", "up", "down")
+	if Input.is_action_pressed("left"):
+		rotation -= turn_speed * 1
+		$Position2D.rotation -= turn_speed * 0.5
+	if Input.is_action_pressed("right"):
+		rotation += turn_speed * 1
+		$Position2D.rotation += turn_speed * 0.5
+	direction.y = Input.get_action_strength("down")-Input.get_action_strength("up")
 	if direction:
-		velocity = direction.normalized() * delta * features["speed"]
+		velocity = direction * delta * features["speed"]
+		$AnimatedSprite.play("default")
 	else:
 		velocity = Vector2.ZERO
-
 	if Input.is_action_just_pressed("shot"):
+		_shoot()
 		isShootingEnabled = !isShootingEnabled
-		if isShootingEnabled:
-			shootingTimer.start()
-		else:
-			shootingTimer.stop()
-	move_and_slide(velocity)
+		shootingTimer.start()
+	else:
+		shootingTimer.stop()
+	if Input.is_action_just_pressed("reset"):
+		dead()
+	if Input.is_action_pressed("left") and Input.is_action_pressed("up"):
+		$AnimatedSprite.play("left")
+	if Input.is_action_pressed("right") and Input.is_action_pressed("up"):
+		$AnimatedSprite.play("right")
+	move_and_slide(velocity.rotated(rotation)).normalized() 
+
 
 func _shoot():
 	var bullet = BULLET.instance()
-	bullet.position = $Position2D.global_position
-	get_parent().add_child(bullet)
+	get_parent().add_child(bullet)  
+	bullet.position = $Position2D.global_position  
+	
 
 
 func _on_Timer_timeout():
@@ -69,16 +80,19 @@ func levelUp():
 
 
 func damage(amount):
-	if emit_signal("hit"):
-		healthPoint -= amount
-		print(healthPoint)
+	healthPoint -= amount
+	print(healthPoint)
 	if healthPoint <= 0:
-		print("dead")
+		dead()
 
 
 func _on_Area2D_area_entered(body):
-#	print("_on_Area2D_body_entered")
-#	prints("Collided:", body.name)
 	if body.is_in_group("BulletEnemy"): 
 		damage(features["damage"])
-	
+
+
+func dead():
+	shootingTimer.stop()  
+	queue_free()
+	Global.player = null
+	get_tree().reload_current_scene()
